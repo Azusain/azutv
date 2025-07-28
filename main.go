@@ -57,12 +57,32 @@ func main() {
 	}
 
 	// Heartz.
-	heartz := func() {
+	sendHeartz := func() {
 		SendMessageToDiscord("Δzu Server is up and running...", config.GetDiscordSystWebhookUrl())
 	}
 	if _, err := scheduler.NewJob(
 		gocron.DurationJob(time.Hour*1),
-		gocron.NewTask(heartz),
+		gocron.NewTask(sendHeartz),
+	); err != nil {
+		slog.Error(err.Error())
+		return
+	}
+
+	// Github Trending.
+	sendGithubTrending := func() {
+		githubTrendingMessage, err := service.GetGithubTrendingMessage()
+		if err != nil {
+			slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
+			return
+		}
+		if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordChatWebhookUrl()); err != nil {
+			slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
+			return
+		}
+	}
+	if _, err := scheduler.NewJob(
+		gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(10, 0, 0))),
+		gocron.NewTask(sendGithubTrending),
 	); err != nil {
 		slog.Error(err.Error())
 		return
@@ -70,5 +90,6 @@ func main() {
 
 	// start scheduler and block forever.
 	scheduler.Start()
+	slog.Info("Δzu Server is running...")
 	select {}
 }
