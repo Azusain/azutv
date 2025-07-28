@@ -16,15 +16,20 @@ const (
 )
 
 type Config struct {
-	DiscordWebhookUrl string `yaml:"discord_webhook"`
+	DiscordChatWebhookUrl string `yaml:"chat_webhook"`
+	DiscordSysWebhookUrl  string `yaml:"system_webhook"`
 }
 
 var (
 	appConfig Config
 )
 
-func GetDiscordWebhookUrl() string {
-	return appConfig.DiscordWebhookUrl
+func GetDiscordChatWebhookUrl() string {
+	return appConfig.DiscordChatWebhookUrl
+}
+
+func GetDiscordSystWebhookUrl() string {
+	return appConfig.DiscordSysWebhookUrl
 }
 
 func LoadConfig() error {
