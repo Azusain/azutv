@@ -24,9 +24,9 @@ jobs:
         run: go build -o main
 
       - name: Run task
-        run:
-          - ./main -task=oricon_rank
-          - ./main -task=github_trending
+        run: |
+          ./main -task=oricon_rank && \
+          ./main -task=github_trending
         env:
           DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
           DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
