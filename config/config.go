@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/pkg/errors"
@@ -33,17 +35,28 @@ func GetDiscordSystWebhookUrl() string {
 }
 
 func LoadConfig() error {
-	file, err := os.Open(YamlConfigPath)
-	if err != nil {
-		return errors.Wrapf(err, "error loading config")
-	}
-	defer file.Close()
+	// from local file.
+	if _, err := os.Stat(YamlConfigPath); os.IsExist(err) {
+		file, err := os.Open(YamlConfigPath)
+		if err != nil {
+			return errors.Wrapf(err, "error loading config")
+		}
+		defer file.Close()
 
-	decoder := yaml.NewDecoder(file)
-	err = decoder.Decode(&appConfig)
-	if err != nil {
-		return errors.Wrapf(err, "error decoding config")
+		decoder := yaml.NewDecoder(file)
+		err = decoder.Decode(&appConfig)
+		if err != nil {
+			return errors.Wrapf(err, "error decoding config")
+		}
+		slog.Info(fmt.Sprintf("loading configurations from local file: %q", YamlConfigPath))
+		return nil
 	}
+
+	// or from shell env.
+	// TODO: validate the args.
+	appConfig.DiscordChatWebhookUrl = os.Getenv("DISCORD_CHAT_WEBHOOK_URL")
+	appConfig.DiscordSysWebhookUrl = os.Getenv("DISCORD_SYS_WEBHOOK_URL")
+	slog.Info("loading configurations from shell env")
 
 	return nil
 }
