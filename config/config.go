@@ -36,7 +36,7 @@ func GetDiscordSystWebhookUrl() string {
 
 func LoadConfig() error {
 	// from local file.
-	if _, err := os.Stat(YamlConfigPath); os.IsExist(err) {
+	if _, err := os.Stat(YamlConfigPath); !os.IsNotExist(err) {
 		file, err := os.Open(YamlConfigPath)
 		if err != nil {
 			return errors.Wrapf(err, "error loading config")

@@ -11,9 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func SendMessageToDiscord(message string, channelUrl string) error {
+func SendMessageToDiscord(message string, channelUrl string, username string) error {
 	dcMessage := discordwebhook.Message{
-		Content: &message,
+		Username: &username,
+		Content:  &message,
 	}
 	return discordwebhook.SendMessage(channelUrl, dcMessage)
 }
@@ -24,7 +25,7 @@ func sendGithubTrending() {
 		slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
 		return
 	}
-	if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordChatWebhookUrl()); err != nil {
+	if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
 		return
 	}
@@ -37,7 +38,7 @@ func sendOriconRanking() {
 		slog.Warn(err.Error())
 		return
 	}
-	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordChatWebhookUrl()); err != nil {
+	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
 		return
 	}

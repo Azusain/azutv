@@ -43,7 +43,6 @@ func GetGithubTrendingMessage() (string, error) {
 	}
 
 	var message strings.Builder
-	message.WriteString(fmt.Sprintf("# %s\n", ServiceNameGithubTrending))
 	for idx, entry := range entries {
 		if entry.Language != "" {
 			entry.Language = fmt.Sprintf("**%s** - ", entry.Language)

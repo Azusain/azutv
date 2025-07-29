@@ -102,5 +102,5 @@ func GetOriconRankingDataMessage() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get ranking data from Oricon")
 	}
-	return "# " + ServiceNameOriconRanking + "\n" + rankData.Dump(), nil
+	return rankData.Dump(), nil
 }
