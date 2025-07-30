@@ -41,14 +41,19 @@ func FetchRankingDataFromOricon() (OriconRankingDataArray, error) {
 
 		// entries.
 		e.DOM.Find(prefix + "div > div").Each(func(i int, s *goquery.Selection) {
-			s.Find("a").Each(func(i int, a *goquery.Selection) {
+			s.Find("dl").Each(func(i int, dl *goquery.Selection) {
 				var title, artist, href string
-				href, _ = a.Attr("href")
-				a.Find("h4").Each(func(i int, h4 *goquery.Selection) {
+				dl.Find("a").Each(func(_ int, a *goquery.Selection) {
+					href, _ = a.Attr("href")
+				})
+
+				dl.Find("h4").Each(func(i int, h4 *goquery.Selection) {
 					title = h4.Text()
 				})
-				a.Find("p").Each(func(i int, p *goquery.Selection) {
-					artist = p.Text()
+				dl.Find("p").Each(func(i int, p *goquery.Selection) {
+					if p.HasClass("name") {
+						artist = p.Text()
+					}
 				})
 				rankData.Entries = append(rankData.Entries, OriconRankingDataEntry{
 					Title:  title,
@@ -90,6 +95,10 @@ func (oriconRankData OriconRankingDataArray) Dump() string {
 	for _, data := range oriconRankData {
 		oriconRank.WriteString(fmt.Sprintf("### %s\n", data.Rule))
 		for _, entry := range data.Entries {
+			if entry.Link == "" {
+				oriconRank.WriteString(fmt.Sprintf("%s - %s\n", entry.Title, entry.Artist))
+				continue
+			}
 			oriconRank.WriteString(fmt.Sprintf("[%s](https://%s/%s) - %s\n", entry.Title, config.DomainOricon, entry.Link, entry.Artist))
 		}
 		oriconRank.WriteRune('\n')
