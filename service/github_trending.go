@@ -10,7 +10,7 @@ import (
 
 const ServiceNameGithubTrending = "Github Trending"
 
-type TrendingEntry struct {
+type GithubTrendingEntry struct {
 	Title    string
 	Link     string
 	Stars    string
@@ -18,7 +18,7 @@ type TrendingEntry struct {
 }
 
 func GetGithubTrendingMessage() (string, error) {
-	entries := []TrendingEntry{}
+	entries := []GithubTrendingEntry{}
 	c := colly.NewCollector()
 
 	c.OnHTML("article.Box-row", func(e *colly.HTMLElement) {
@@ -29,7 +29,7 @@ func GetGithubTrendingMessage() (string, error) {
 		stars := strings.TrimSpace(e.ChildText("a[href$='/stargazers']"))
 		language := strings.TrimSpace(e.ChildText("span[itemprop='programmingLanguage']"))
 
-		entries = append(entries, TrendingEntry{
+		entries = append(entries, GithubTrendingEntry{
 			Title:    title,
 			Link:     repoURL,
 			Stars:    stars,

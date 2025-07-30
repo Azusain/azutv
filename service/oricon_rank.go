@@ -12,16 +12,59 @@ import (
 
 const ServiceNameOriconRanking = "Oricon Ranking"
 
+type OriconRankingTrend string
+
+const (
+	OriconRankingTrendUp        = "up"
+	OriconRankingTrendNew       = "new"
+	OriconRankingTrendDown      = "down"
+	OriconRankingTrendStay      = "stay"
+	OriconRankingTrendUnknowned = "unknowned"
+)
+
+func getOriconRaningTrendFromStr(str string) OriconRankingTrend {
+	switch str {
+	case "status new":
+		return OriconRankingTrendNew
+	case "status up":
+		return OriconRankingTrendUp
+	case "status down":
+		return OriconRankingTrendDown
+	case "status stay":
+		return OriconRankingTrendStay
+	default:
+		return OriconRankingTrendUnknowned
+	}
+}
+
+func oriconRankingTrendToEmoji(trend OriconRankingTrend) string {
+	switch trend {
+	case OriconRankingTrendNew:
+		return "🆕"
+	case OriconRankingTrendUp:
+		return "🔼"
+	case OriconRankingTrendDown:
+		return "🔻"
+	case OriconRankingTrendStay:
+		return "▶️"
+	default:
+		return ""
+	}
+
+}
+
 type OriconRankingDataEntry struct {
 	Title  string
 	Artist string
 	Link   string
+	Trend  OriconRankingTrend
 }
 
 type OriconRankingData struct {
 	Rule    string
 	Entries []OriconRankingDataEntry
 }
+
 type OriconRankingDataArray []OriconRankingData
 
 func FetchRankingDataFromOricon() (OriconRankingDataArray, error) {
@@ -43,22 +86,27 @@ func FetchRankingDataFromOricon() (OriconRankingDataArray, error) {
 		e.DOM.Find(prefix + "div > div").Each(func(i int, s *goquery.Selection) {
 			s.Find("dl").Each(func(i int, dl *goquery.Selection) {
 				var title, artist, href string
+				var trend OriconRankingTrend = OriconRankingTrendUnknowned
 				dl.Find("a").Each(func(_ int, a *goquery.Selection) {
 					href, _ = a.Attr("href")
 				})
-
 				dl.Find("h4").Each(func(i int, h4 *goquery.Selection) {
 					title = h4.Text()
 				})
 				dl.Find("p").Each(func(i int, p *goquery.Selection) {
 					if p.HasClass("name") {
 						artist = p.Text()
+						return
+					}
+					if class, ok := p.Attr("class"); ok {
+						trend = getOriconRaningTrendFromStr(class)
 					}
 				})
 				rankData.Entries = append(rankData.Entries, OriconRankingDataEntry{
 					Title:  title,
 					Artist: artist,
 					Link:   href,
+					Trend:  trend,
 				})
 			})
 		})
@@ -96,10 +144,12 @@ func (oriconRankData OriconRankingDataArray) Dump() string {
 		oriconRank.WriteString(fmt.Sprintf("### %s\n", data.Rule))
 		for _, entry := range data.Entries {
 			if entry.Link == "" {
-				oriconRank.WriteString(fmt.Sprintf("%s - %s\n", entry.Title, entry.Artist))
-				continue
+				oriconRank.WriteString(fmt.Sprintf("%s - %s ", entry.Title, entry.Artist))
+			} else {
+				oriconRank.WriteString(fmt.Sprintf("[%s](https://%s/%s) - %s ", entry.Title, config.DomainOricon, entry.Link, entry.Artist))
 			}
-			oriconRank.WriteString(fmt.Sprintf("[%s](https://%s/%s) - %s\n", entry.Title, config.DomainOricon, entry.Link, entry.Artist))
+			oriconRank.WriteString(oriconRankingTrendToEmoji(entry.Trend))
+			oriconRank.WriteRune('\n')
 		}
 		oriconRank.WriteRune('\n')
 	}
