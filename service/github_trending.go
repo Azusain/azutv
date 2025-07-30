@@ -1,7 +1,6 @@
 package service
 
 import (
-	"azuserver/utils"
 	"fmt"
 	"strings"
 
@@ -58,7 +57,7 @@ func GetGithubTrendingMessage() ([]string, error) {
 		}
 		message.WriteString(fmt.Sprintf("## \\#%d  [%s](<%s>)\n%s⭐ %s\n",
 			idx+1, entry.Title, entry.Link, entry.Language, entry.Stars))
-		message.WriteString(utils.WrapAtWidth(entry.Description, 100))
+		message.WriteString(entry.Description + "\n")
 		// TODO: split by size.
 		if (idx+1)%5 == 0 {
 			messages = append(messages, message.String())
