@@ -30,7 +30,7 @@ func GetDiscordChatWebhookUrl() string {
 	return appConfig.DiscordChatWebhookUrl
 }
 
-func GetDiscordSystWebhookUrl() string {
+func GetDiscordSysWebhookUrl() string {
 	return appConfig.DiscordSysWebhookUrl
 }
 

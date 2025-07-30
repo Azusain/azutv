@@ -32,7 +32,7 @@ func sendGithubTrending() {
 	}
 	if err := SendMessageToDiscord(
 		githubTrendingMessages,
-		config.GetDiscordSystWebhookUrl(),
+		config.GetDiscordChatWebhookUrl(),
 		service.ServiceNameGithubTrending,
 	); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
