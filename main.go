@@ -38,7 +38,7 @@ func sendOriconRanking() {
 		slog.Warn(err.Error())
 		return
 	}
-	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordSystWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
+	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
 		return
 	}
