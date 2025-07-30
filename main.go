@@ -30,7 +30,11 @@ func sendGithubTrending() {
 		slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
 		return
 	}
-	if err := SendMessageToDiscord(githubTrendingMessages, config.GetDiscordChatWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
+	if err := SendMessageToDiscord(
+		githubTrendingMessages,
+		config.GetDiscordSystWebhookUrl(),
+		service.ServiceNameGithubTrending,
+	); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
 		return
 	}
@@ -43,12 +47,17 @@ func sendOriconRanking() {
 		slog.Warn(err.Error())
 		return
 	}
-	if err := SendMessageToDiscord([]string{oriconRankMessage}, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
+	if err := SendMessageToDiscord(
+		[]string{oriconRankMessage},
+		config.GetDiscordChatWebhookUrl(),
+		service.ServiceNameOriconRanking,
+	); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
 		return
 	}
 }
 
+// TODO: test bin options.
 func main() {
 	// TODO: Load plugin configuration only if the plugin is enabled.
 	if err := config.LoadConfig(); err != nil {
