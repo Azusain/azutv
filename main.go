@@ -25,7 +25,7 @@ func sendGithubTrending() {
 		slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
 		return
 	}
-	if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
+	if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordSystWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
 		return
 	}
@@ -38,7 +38,7 @@ func sendOriconRanking() {
 		slog.Warn(err.Error())
 		return
 	}
-	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordSystWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
+	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
 		return
 	}
