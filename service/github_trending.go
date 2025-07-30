@@ -1,6 +1,7 @@
 package service
 
 import (
+	"azuserver/utils"
 	"fmt"
 	"strings"
 
@@ -19,7 +20,7 @@ type GithubTrendingEntry struct {
 	Description string
 }
 
-func GetGithubTrendingMessage() (string, error) {
+func GetGithubTrendingMessage() ([]string, error) {
 	entries := []GithubTrendingEntry{}
 	c := colly.NewCollector()
 
@@ -46,21 +47,24 @@ func GetGithubTrendingMessage() (string, error) {
 
 	err := c.Visit("https://github.com/trending")
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to visit Github trending")
+		return nil, errors.Wrapf(err, "failed to visit Github trending")
 	}
 
 	var message strings.Builder
+	var messages []string
 	for idx, entry := range entries {
 		if entry.Language != "" {
 			entry.Language = fmt.Sprintf("**%s** - ", entry.Language)
 		}
-		message.WriteString(fmt.Sprintf("## \\#%d  [%s](%s)\n%s⭐ %s\n",
+		message.WriteString(fmt.Sprintf("## \\#%d  [%s](<%s>)\n%s⭐ %s\n",
 			idx+1, entry.Title, entry.Link, entry.Language, entry.Stars))
-		message.WriteString(fmt.Sprintf("%s\n\n", entry.Description))
-		if idx >= 5 {
-			break
+		message.WriteString(utils.WrapAtWidth(entry.Description, 100))
+		// TODO: split by size.
+		if (idx+1)%5 == 0 {
+			messages = append(messages, message.String())
+			message.Reset()
 		}
 	}
 
-	return message.String(), nil
+	return messages, nil
 }

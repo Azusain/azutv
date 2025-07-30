@@ -146,7 +146,7 @@ func (oriconRankData OriconRankingDataArray) Dump() string {
 			if entry.Link == "" {
 				oriconRank.WriteString(fmt.Sprintf("%s - %s ", entry.Title, entry.Artist))
 			} else {
-				oriconRank.WriteString(fmt.Sprintf("[%s](https://%s/%s) - %s ", entry.Title, config.DomainOricon, entry.Link, entry.Artist))
+				oriconRank.WriteString(fmt.Sprintf("[%s](<https://%s/%s>) - %s ", entry.Title, config.DomainOricon, entry.Link, entry.Artist))
 			}
 			oriconRank.WriteString(oriconRankingTrendToEmoji(entry.Trend))
 			oriconRank.WriteRune('\n')

@@ -11,21 +11,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-func SendMessageToDiscord(message string, channelUrl string, username string) error {
-	dcMessage := discordwebhook.Message{
-		Username: &username,
-		Content:  &message,
+func SendMessageToDiscord(messages []string, channelUrl string, username string) error {
+	for _, m := range messages {
+		dcMessage := discordwebhook.Message{
+			Username: &username,
+			Content:  &m,
+		}
+		if err := discordwebhook.SendMessage(channelUrl, dcMessage); err != nil {
+			return errors.Wrapf(err, "failed to send message to Discord")
+		}
 	}
-	return discordwebhook.SendMessage(channelUrl, dcMessage)
+	return nil
 }
 
 func sendGithubTrending() {
-	githubTrendingMessage, err := service.GetGithubTrendingMessage()
+	githubTrendingMessages, err := service.GetGithubTrendingMessage()
 	if err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
 		return
 	}
-	if err := SendMessageToDiscord(githubTrendingMessage, config.GetDiscordSystWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
+	if err := SendMessageToDiscord(githubTrendingMessages, config.GetDiscordChatWebhookUrl(), service.ServiceNameGithubTrending); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
 		return
 	}
@@ -38,7 +43,7 @@ func sendOriconRanking() {
 		slog.Warn(err.Error())
 		return
 	}
-	if err := SendMessageToDiscord(oriconRankMessage, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
+	if err := SendMessageToDiscord([]string{oriconRankMessage}, config.GetDiscordChatWebhookUrl(), service.ServiceNameOriconRanking); err != nil {
 		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
 		return
 	}
