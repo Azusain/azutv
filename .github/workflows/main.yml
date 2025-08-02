@@ -2,7 +2,7 @@ name: Scheduled Tasks
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 1 * * *"
+    - cron: "0 0 * * *"
 
 jobs:
   run-go-task:
