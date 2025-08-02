@@ -1,13 +1,31 @@
 package service
 
 import (
+	"azuserver/config"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 )
+
+func SendGithubTrending() {
+	githubTrendingMessages, err := GetGithubTrendingMessage()
+	if err != nil {
+		slog.Warn(errors.Wrapf(err, "failed to get Github Trending").Error())
+		return
+	}
+	if err := SendMessageToDiscord(
+		githubTrendingMessages,
+		config.GetDiscordChatWebhookUrl(),
+		ServiceNameGithubTrending,
+	); err != nil {
+		slog.Warn(errors.Wrapf(err, "failed to send Github Trending to Discord").Error())
+		return
+	}
+}
 
 const ServiceNameGithubTrending = "Github Trending"
 

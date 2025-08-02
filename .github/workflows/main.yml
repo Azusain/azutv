@@ -25,9 +25,9 @@ jobs:
 
       - name: Run task
         run: |
-          ./main -task=oricon_rank && \
+          ./main -task=oricon_ranking && \
           ./main -task=github_trending && \
-          ./main -task=vocaloid_trending
+          ./main -task=vocaloid_ranking
         env:
           DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
           DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}

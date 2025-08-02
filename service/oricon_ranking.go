@@ -3,12 +3,30 @@ package service
 import (
 	"azuserver/config"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/pkg/errors"
 )
+
+// Oricon Ranking.
+func SendOriconRanking() {
+	oriconRankMessage, err := GetOriconRankingDataMessage()
+	if err != nil {
+		slog.Warn(err.Error())
+		return
+	}
+	if err := SendMessageToDiscord(
+		[]string{oriconRankMessage},
+		config.GetDiscordChatWebhookUrl(),
+		ServiceNameOriconRanking,
+	); err != nil {
+		slog.Warn(errors.Wrapf(err, "failed to send Oricon Ranking to Discord").Error())
+		return
+	}
+}
 
 const ServiceNameOriconRanking = "Oricon Ranking"
 

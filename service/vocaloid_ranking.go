@@ -1,8 +1,10 @@
 package service
 
 import (
+	"azuserver/config"
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -11,6 +13,22 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
+
+func SendVocaloidRanking() {
+	messages, err := GetVocaloidRankingMessage()
+	if err != nil {
+		slog.Warn(err.Error())
+		return
+	}
+	if err := SendMessageToDiscord(
+		messages,
+		config.GetDiscordChatWebhookUrl(),
+		ServiceNameVocaloidnRanking,
+	); err != nil {
+		slog.Warn(errors.Wrapf(err, "failed to send Vocaloid Ranking to Discord").Error())
+		return
+	}
+}
 
 const ServiceNameVocaloidnRanking = "Vocaloid Ranking"
 
