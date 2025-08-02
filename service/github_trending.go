@@ -65,5 +65,9 @@ func GetGithubTrendingMessage() ([]string, error) {
 		}
 	}
 
+	if left := message.String(); left != "" {
+		messages = append(messages, left)
+	}
+
 	return messages, nil
 }
