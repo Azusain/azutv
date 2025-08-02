@@ -4,10 +4,12 @@ go 1.24.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.2
+	github.com/go-resty/resty/v2 v2.16.5
 	github.com/gocolly/colly v1.2.0
 	github.com/gtuk/discordwebhook v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/rivo/uniseg v0.4.7
+	golang.org/x/sync v0.12.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

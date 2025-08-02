@@ -11,6 +11,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+type AzutvTaskType string
+
+const (
+	AzutvTaskTypeOriconRanking   AzutvTaskType = "oricon_ranking"
+	AzutvTaskTypeGithubTrending  AzutvTaskType = "github_trending"
+	AzutvTaskTypeVocaloidRanking AzutvTaskType = "vocaloid_ranking"
+)
+
 func SendMessageToDiscord(messages []string, channelUrl string, username string) error {
 	for _, m := range messages {
 		dcMessage := discordwebhook.Message{
@@ -52,7 +60,23 @@ func sendOriconRanking() {
 		config.GetDiscordChatWebhookUrl(),
 		service.ServiceNameOriconRanking,
 	); err != nil {
-		slog.Warn(errors.Wrapf(err, "failed to send Oricon Raning to Discord").Error())
+		slog.Warn(errors.Wrapf(err, "failed to send Oricon Ranking to Discord").Error())
+		return
+	}
+}
+
+func sendVocaloidRanking() {
+	messages, err := service.GetVocaloidRankingMessage()
+	if err != nil {
+		slog.Warn(err.Error())
+		return
+	}
+	if err := SendMessageToDiscord(
+		messages,
+		config.GetDiscordChatWebhookUrl(),
+		service.ServiceNameVocaloidnRanking,
+	); err != nil {
+		slog.Warn(errors.Wrapf(err, "failed to send Vocaloid Ranking to Discord").Error())
 		return
 	}
 }
@@ -68,12 +92,15 @@ func main() {
 	task := flag.String("task", "", "oricon_rank, github_trending")
 	flag.Parse()
 
-	switch *task {
-	case "oricon_rank":
+	switch AzutvTaskType(*task) {
+	case AzutvTaskTypeOriconRanking:
 		sendOriconRanking()
 
-	case "github_trending":
+	case AzutvTaskTypeGithubTrending:
 		sendGithubTrending()
+
+	case AzutvTaskTypeVocaloidRanking:
+		sendVocaloidRanking()
 
 	default:
 		slog.Error(fmt.Sprintf("invalid task type %q", *task))

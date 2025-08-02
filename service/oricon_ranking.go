@@ -50,7 +50,6 @@ func oriconRankingTrendToEmoji(trend OriconRankingTrend) string {
 	default:
 		return ""
 	}
-
 }
 
 type OriconRankingDataEntry struct {
