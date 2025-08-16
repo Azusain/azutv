@@ -1,0 +1,104 @@
+name: Manual Service Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to run'
+        required: true
+        default: 'github_trending'
+        type: choice
+        options:
+          - oricon_ranking
+          - github_trending  
+          - vocaloid_ranking
+          - youtube_user
+          - bilibili_user
+      
+      user_id:
+        description: 'User ID (for YouTube/Bilibili services)'
+        required: false
+        default: ''
+        type: string
+        
+      additional_params:
+        description: 'Additional parameters (JSON format, optional)'
+        required: false
+        default: '{}'
+        type: string
+
+jobs:
+  test-service:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.1"
+          
+      - name: Install dependencies
+        run: go mod tidy
+        
+      - name: Build binary
+        run: go build -o main
+        
+      - name: Validate inputs
+        run: |
+          echo "Selected service: ${{ inputs.service }}"
+          echo "User ID: ${{ inputs.user_id }}"
+          echo "Additional params: ${{ inputs.additional_params }}"
+          
+          # Validate that user services have required user_id
+          if [[ "${{ inputs.service }}" == "youtube_user" || "${{ inputs.service }}" == "bilibili_user" ]]; then
+            if [[ -z "${{ inputs.user_id }}" ]]; then
+              echo "❌ Error: User ID is required for ${{ inputs.service }} service"
+              echo "Examples:"
+              echo "  - YouTube: @MrBeast, UCX6OQ3DkcsbYNE6H8uQQuVA, or pewdiepie"
+              echo "  - Bilibili: 1, 946974, or any numeric UID"
+              exit 1
+            fi
+          fi
+        
+      - name: Run Standard Services
+        if: ${{ !contains(fromJson('["youtube_user", "bilibili_user"]'), inputs.service) }}
+        run: |
+          echo "🚀 Running service: ${{ inputs.service }}"
+          ./main -task=${{ inputs.service }}
+        env:
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          
+      - name: Run YouTube User Service
+        if: ${{ inputs.service == 'youtube_user' }}
+        run: |
+          echo "🎬 Testing YouTube User Service..."
+          echo "User ID: ${{ inputs.user_id }}"
+          echo "Command: ./main -task=youtube_user -user-id='${{ inputs.user_id }}'"
+          ./main -task=youtube_user -user-id="${{ inputs.user_id }}"
+        env:
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          
+      - name: Run Bilibili User Service  
+        if: ${{ inputs.service == 'bilibili_user' }}
+        run: |
+          echo "📺 Testing Bilibili User Service..."
+          echo "UID: ${{ inputs.user_id }}"
+          echo "Command: ./main -task=bilibili_user -uid='${{ inputs.user_id }}'"
+          ./main -task=bilibili_user -uid="${{ inputs.user_id }}"
+        env:
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          
+      - name: Service Test Complete
+        run: |
+          echo "✅ Service test completed successfully!"
+          echo "Service: ${{ inputs.service }}"
+          if [[ -n "${{ inputs.user_id }}" ]]; then
+            echo "User ID: ${{ inputs.user_id }}"
+          fi
+          echo "Check the logs above for detailed output."

@@ -14,6 +14,8 @@ const (
 	AzutvTaskTypeOriconRanking   AzutvTaskType = "oricon_ranking"
 	AzutvTaskTypeGithubTrending  AzutvTaskType = "github_trending"
 	AzutvTaskTypeVocaloidRanking AzutvTaskType = "vocaloid_ranking"
+	AzutvTaskTypeYouTubeUser     AzutvTaskType = "youtube_user"
+	AzutvTaskTypeBilibiliUser    AzutvTaskType = "bilibili_user"
 )
 
 func SendMessageToDiscord(messages []string, channelUrl string, username string) error {
@@ -40,8 +42,36 @@ func RunService(task *string) {
 	case AzutvTaskTypeVocaloidRanking:
 		SendVocaloidRanking()
 
+	case AzutvTaskTypeYouTubeUser:
+		slog.Info("YouTube user service requires userID parameter. Use RunServiceWithParams instead.")
+
+	case AzutvTaskTypeBilibiliUser:
+		slog.Info("Bilibili user service requires uid parameter. Use RunServiceWithParams instead.")
+
 	default:
 		slog.Error(fmt.Sprintf("invalid task type %q", *task))
 		return
+	}
+}
+
+// RunServiceWithParams 运行需要参数的服务
+func RunServiceWithParams(task string, params map[string]string) error {
+	switch AzutvTaskType(task) {
+	case AzutvTaskTypeYouTubeUser:
+		userID, ok := params["userID"]
+		if !ok || userID == "" {
+			return errors.New("YouTube user service requires 'userID' parameter")
+		}
+		return SendYouTubeUserInfo(userID)
+
+	case AzutvTaskTypeBilibiliUser:
+		uid, ok := params["uid"]
+		if !ok || uid == "" {
+			return errors.New("Bilibili user service requires 'uid' parameter")
+		}
+		return SendBilibiliUserInfo(uid)
+
+	default:
+		return errors.Errorf("unsupported task type for parameterized service: %s", task)
 	}
 }
