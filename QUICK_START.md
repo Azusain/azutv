@@ -36,26 +36,15 @@ go build -o main
 
 1. **进入 GitHub 仓库 → Actions 页面**
 
-2. **选择 "Quick Service Tests (Presets)"**
+2. **选择 "Manual Service Testing"**
 
-3. **选择预设并运行：**
-   - `youtube_mrbeast`: 测试 MrBeast 频道
-   - `bilibili_admin`: 测试 Bilibili 管理员账户  
-   - `all_standard`: 运行所有标准服务
-
-4. **查看运行结果和日志**
-
-### 3. 手动精确测试
-
-1. **选择 "Manual Service Testing"**
-
-2. **配置参数：**
+3. **配置参数：**
    ```
-   Service: youtube_user
-   User ID: @your_favorite_channel
+   Service: youtube_user  (从下拉菜单选择)
+   User ID: @MrBeast     (输入用户ID)
    ```
 
-3. **运行并查看结果**
+4. **点击 "Run workflow" 并查看结果**
 
 ## 📊 支持的服务
 

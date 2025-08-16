@@ -8,16 +8,13 @@
 - **触发方式**: 每天自动运行 + 手动触发
 - **功能**: 运行标准服务（Oricon排行、GitHub趋势、Vocaloid排行）
 - **用途**: 日常自动化数据收集
+- **Discord Webhook**: 使用生产环境的 webhook
 
 ### 2. 手动服务测试 (Manual Service Testing) - `manual-test.yml`
 - **触发方式**: 仅手动触发
 - **功能**: 测试单个服务，支持所有服务类型
 - **用途**: 开发和调试时的精确测试
-
-### 3. 快速预设测试 (Quick Service Tests) - `quick-test.yml`  
-- **触发方式**: 仅手动触发
-- **功能**: 使用预设参数快速测试常见场景
-- **用途**: 快速验证服务功能
+- **Discord Webhook**: 使用测试环境的 `DISCORD_TEST_WEBHOOK_URL`
 
 ## 🚀 使用方法
 
@@ -71,36 +68,6 @@ Service: github_trending
 User ID: (留空)
 ```
 
-### Quick Service Tests 使用方法
-
-提供预设的测试组合，无需手动输入复杂参数：
-
-#### 可用预设
-- **all_standard**: 运行所有标准服务
-- **youtube_mrbeast**: 测试 MrBeast 频道
-- **youtube_pewdiepie**: 测试 PewDiePie 频道
-- **bilibili_admin**: 测试 Bilibili 管理员账户
-- **bilibili_popular_up**: 测试热门UP主
-- **custom_youtube**: 自定义 YouTube 测试
-- **custom_bilibili**: 自定义 Bilibili 测试
-
-#### 使用示例
-
-**快速测试所有标准服务：**
-```
-Test Preset: all_standard
-```
-
-**测试特定 YouTube 频道：**
-```  
-Test Preset: youtube_mrbeast
-```
-
-**自定义测试：**
-```
-Test Preset: custom_youtube
-Custom User ID: @your_favorite_channel
-```
 
 ## 🔧 本地命令行使用
 
@@ -151,9 +118,15 @@ go build -o main
 
 需要在 GitHub 仓库设置中配置以下 secrets：
 
+**生产环境（用于定时任务）：**
 ```
-DISCORD_CHAT_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook-url
+DISCORD_CHAT_WEBHOOK_URL=https://discord.com/api/webhooks/your-production-webhook-url
 DISCORD_SYS_WEBHOOK_URL=https://discord.com/api/webhooks/your-system-webhook-url  
+```
+
+**测试环境（用于手动测试）：**
+```
+DISCORD_TEST_WEBHOOK_URL=https://discord.com/api/webhooks/your-test-webhook-url
 ```
 
 ### 设置步骤
@@ -198,17 +171,6 @@ DISCORD_SYS_WEBHOOK_URL=https://discord.com/api/webhooks/your-system-webhook-url
    - 逐步添加复杂的参数化服务
 
 ## 📝 扩展和自定义
-
-### 添加新的预设
-在 `quick-test.yml` 中添加新的测试预设：
-
-```yaml
-- name: Test New Preset
-  if: ${{ inputs.test_preset == 'your_new_preset' }}
-  run: |
-    echo "Testing new preset..."
-    ./main -task=your_service -param=your_value
-```
 
 ### 修改运行频率
 在 `main.yml` 中修改 cron 表达式：

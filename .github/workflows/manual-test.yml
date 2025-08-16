@@ -20,12 +20,6 @@ on:
         required: false
         default: ''
         type: string
-        
-      additional_params:
-        description: 'Additional parameters (JSON format, optional)'
-        required: false
-        default: '{}'
-        type: string
 
 jobs:
   test-service:
@@ -50,7 +44,6 @@ jobs:
         run: |
           echo "Selected service: ${{ inputs.service }}"
           echo "User ID: ${{ inputs.user_id }}"
-          echo "Additional params: ${{ inputs.additional_params }}"
           
           # Validate that user services have required user_id
           if [[ "${{ inputs.service }}" == "youtube_user" || "${{ inputs.service }}" == "bilibili_user" ]]; then
@@ -69,8 +62,8 @@ jobs:
           echo "🚀 Running service: ${{ inputs.service }}"
           ./main -task=${{ inputs.service }}
         env:
-          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
-          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           
       - name: Run YouTube User Service
         if: ${{ inputs.service == 'youtube_user' }}
@@ -80,8 +73,8 @@ jobs:
           echo "Command: ./main -task=youtube_user -user-id='${{ inputs.user_id }}'"
           ./main -task=youtube_user -user-id="${{ inputs.user_id }}"
         env:
-          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
-          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           
       - name: Run Bilibili User Service  
         if: ${{ inputs.service == 'bilibili_user' }}
@@ -91,8 +84,8 @@ jobs:
           echo "Command: ./main -task=bilibili_user -uid='${{ inputs.user_id }}'"
           ./main -task=bilibili_user -uid="${{ inputs.user_id }}"
         env:
-          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_CHAT_WEBHOOK_URL }}
-          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_SYS_WEBHOOK_URL }}
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           
       - name: Service Test Complete
         run: |
