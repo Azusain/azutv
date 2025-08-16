@@ -2,6 +2,7 @@ package service
 
 import (
 	"azuserver/config"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -52,19 +53,33 @@ type BilibiliVideoInfo struct {
 
 // GetBilibiliUserInfo 根据用户UID获取Bilibili用户信息
 func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
-	c := colly.NewCollector(
-		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
-	)
-
 	userInfo := &BilibiliUserInfo{
 		UserID:   uid,
 		SpaceURL: fmt.Sprintf("https://space.bilibili.com/%s", uid),
 	}
 
-	// 从页面标题获取用户名 (作为备用方案)
+	// 首先尝试通过页面获取基本信息（用户名、头像等）
+	if err := getBilibiliUserBasicInfo(userInfo); err != nil {
+		slog.Warn("Failed to get basic user info from page", "uid", uid, "error", err)
+	}
+
+	// 通过API获取统计信息
+	if err := getBilibiliUserStatsFromAPI(userInfo); err != nil {
+		slog.Warn("Failed to get user stats from API", "uid", uid, "error", err)
+	}
+
+	return userInfo, nil
+}
+
+// getBilibiliUserBasicInfo 从用户页面获取基本信息
+func getBilibiliUserBasicInfo(userInfo *BilibiliUserInfo) error {
+	c := colly.NewCollector(
+		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
+	)
+
+	// 从页面标题获取用户名
 	c.OnHTML("title", func(e *colly.HTMLElement) {
 		title := e.Text
-		// 从标题提取用户名: "TimeTom790的个人空间-TimeTom790个人主页-哔哩哔哩视频"
 		if strings.Contains(title, "的个人空间") {
 			parts := strings.Split(title, "的个人空间")
 			if len(parts) > 0 && userInfo.Username == "" {
@@ -73,11 +88,10 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 		}
 	})
 
-	// 从描述获取额外信息
+	// 从描述获取信息
 	c.OnHTML("meta[name='description']", func(e *colly.HTMLElement) {
 		desc := e.Attr("content")
 		if desc != "" && userInfo.Description == "" {
-			// 提取描述中的主要内容
 			if strings.Contains(desc, "个人空间，提供") {
 				parts := strings.Split(desc, "个人空间，提供")
 				if len(parts) > 1 {
@@ -93,18 +107,16 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 		}
 	})
 
-	// 获取用户基本信息
+	// 从脚本获取基本信息
 	c.OnHTML("script", func(e *colly.HTMLElement) {
 		scriptContent := e.Text
-		
-		// 查找包含用户信息的JSON数据 - 支持新旧格式
 		if strings.Contains(scriptContent, "__INITIAL_STATE__") || strings.Contains(scriptContent, "_render_data_") {
 			// 提取用户名
-			if strings.Contains(scriptContent, "\"name\":") {
+			if strings.Contains(scriptContent, "\"name\":") && userInfo.Username == "" {
 				re := regexp.MustCompile(`"name":"([^"]+)"`)
 				matches := re.FindAllStringSubmatch(scriptContent, -1)
 				for _, match := range matches {
-					if len(match) > 1 && match[1] != "" && userInfo.Username == "" {
+					if len(match) > 1 && match[1] != "" {
 						userInfo.Username = match[1]
 						break
 					}
@@ -131,17 +143,6 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 				}
 			}
 
-			// 提取VIP类型
-			if strings.Contains(scriptContent, "\"vipType\":") {
-				re := regexp.MustCompile(`"vipType":(\d+)`)
-				matches := re.FindStringSubmatch(scriptContent)
-				if len(matches) > 1 {
-					if vipType, err := strconv.Atoi(matches[1]); err == nil {
-						userInfo.VipType = vipType
-					}
-				}
-			}
-
 			// 提取简介
 			if strings.Contains(scriptContent, "\"sign\":") {
 				re := regexp.MustCompile(`"sign":"([^"]+)"`)
@@ -150,59 +151,84 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 					userInfo.Description = matches[1]
 				}
 			}
-			
-			// 尝试提取粉丝数等统计信息 (如果在脚本中可找到)
-			if strings.Contains(scriptContent, "\"follower\":") {
-				re := regexp.MustCompile(`"follower":(\d+)`)
-				matches := re.FindStringSubmatch(scriptContent)
-				if len(matches) > 1 {
-					if count, err := strconv.ParseInt(matches[1], 10, 64); err == nil {
-						userInfo.FollowerCount = count
-					}
-				}
-			}
-		}
-	})
-
-	// 获取统计数据
-	c.OnHTML(".n-num", func(e *colly.HTMLElement) {
-		text := strings.TrimSpace(e.Text)
-		if text != "" {
-			// 根据父元素或兄弟元素判断这是哪个统计数据
-			parent := e.DOM.Parent()
-			if parent.Length() > 0 {
-				label := strings.TrimSpace(parent.Text())
-				if strings.Contains(label, "关注") && strings.Contains(label, text) {
-					if count, err := parseBilibiliCount(text); err == nil {
-						userInfo.FollowingCount = count
-					}
-				} else if strings.Contains(label, "粉丝") && strings.Contains(label, text) {
-					if count, err := parseBilibiliCount(text); err == nil {
-						userInfo.FollowerCount = count
-					}
-				} else if strings.Contains(label, "获赞") && strings.Contains(label, text) {
-					if count, err := parseBilibiliCount(text); err == nil {
-						userInfo.LikeCount = count
-					}
-				} else if strings.Contains(label, "播放") && strings.Contains(label, text) {
-					if count, err := parseBilibiliCount(text); err == nil {
-						userInfo.PlayCount = count
-					}
-				}
-			}
 		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
-		slog.Error("Bilibili scraping error", "url", r.Request.URL, "error", err)
+		slog.Error("Bilibili basic info scraping error", "url", r.Request.URL, "error", err)
 	})
 
-	err := c.Visit(userInfo.SpaceURL)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to visit Bilibili user space: %s", userInfo.SpaceURL)
-	}
+	return c.Visit(userInfo.SpaceURL)
+}
 
-	return userInfo, nil
+// getBilibiliUserStatsFromAPI 通过API获取用户统计信息
+func getBilibiliUserStatsFromAPI(userInfo *BilibiliUserInfo) error {
+	// 创建一个新的 collector 来调用 API
+	c := colly.NewCollector(
+		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
+	)
+
+	// 设置请求头，模拟浏览器请求
+	c.OnRequest(func(r *colly.Request) {
+		r.Headers.Set("Referer", userInfo.SpaceURL)
+		r.Headers.Set("Accept", "application/json, text/plain, */*")
+	})
+
+	// 处理API响应
+	c.OnResponse(func(r *colly.Response) {
+		var apiResp struct {
+			Code int `json:"code"`
+			Data struct {
+				Mid       int64  `json:"mid"`
+				Name      string `json:"name"`
+				Sex       string `json:"sex"`
+				Face      string `json:"face"`
+				Sign      string `json:"sign"`
+				Level     int    `json:"level"`
+				Follower  int64  `json:"follower"`
+				Following int64  `json:"following"`
+			} `json:"data"`
+		}
+
+		if err := json.Unmarshal(r.Body, &apiResp); err != nil {
+			slog.Error("Failed to parse API response", "error", err)
+			return
+		}
+
+		if apiResp.Code == 0 {
+			// 更新用户信息
+			if userInfo.Username == "" {
+				userInfo.Username = apiResp.Data.Name
+			}
+			if userInfo.AvatarURL == "" {
+				userInfo.AvatarURL = apiResp.Data.Face
+			}
+			if userInfo.Description == "" {
+				userInfo.Description = apiResp.Data.Sign
+			}
+			if userInfo.Level == 0 {
+				userInfo.Level = apiResp.Data.Level
+			}
+			userInfo.FollowerCount = apiResp.Data.Follower
+			userInfo.FollowingCount = apiResp.Data.Following
+
+			slog.Info("Successfully got user stats from API",
+				"uid", userInfo.UserID,
+				"name", userInfo.Username,
+				"followers", userInfo.FollowerCount,
+				"following", userInfo.FollowingCount)
+		} else {
+			slog.Warn("API returned error", "code", apiResp.Code)
+		}
+	})
+
+	c.OnError(func(r *colly.Response, err error) {
+		slog.Error("API request error", "url", r.Request.URL, "error", err)
+	})
+
+	// 构建API URL - 使用 Bilibili 的用户信息API
+	apiURL := fmt.Sprintf("https://api.bilibili.com/x/space/wbi/acc/info?mid=%s", userInfo.UserID)
+	return c.Visit(apiURL)
 }
 
 // GetBilibiliUserVideos 获取用户最新的视频列表
