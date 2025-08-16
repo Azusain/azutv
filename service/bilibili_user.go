@@ -163,18 +163,27 @@ func getBilibiliUserBasicInfo(userInfo *BilibiliUserInfo) error {
 
 // getBilibiliUserStatsFromAPI 通过API获取用户统计信息
 func getBilibiliUserStatsFromAPI(userInfo *BilibiliUserInfo) error {
-	// 创建一个新的 collector 来调用 API
+	// 先尝试传统 API 方法
+	if err := tryBilibiliAPI(userInfo); err == nil {
+		return nil
+	}
+
+	// API 失败，尝试无头浏览器方法
+	return getBilibiliUserStatsWithBrowser(userInfo)
+}
+
+// tryBilibiliAPI 尝试传统 API 方法
+func tryBilibiliAPI(userInfo *BilibiliUserInfo) error {
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
 	)
 
-	// 设置请求头，模拟浏览器请求
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Referer", userInfo.SpaceURL)
 		r.Headers.Set("Accept", "application/json, text/plain, */*")
 	})
 
-	// 处理API响应
+	var apiSuccess bool
 	c.OnResponse(func(r *colly.Response) {
 		var apiResp struct {
 			Code int `json:"code"`
@@ -196,7 +205,7 @@ func getBilibiliUserStatsFromAPI(userInfo *BilibiliUserInfo) error {
 		}
 
 		if apiResp.Code == 0 {
-			// 更新用户信息
+			apiSuccess = true
 			if userInfo.Username == "" {
 				userInfo.Username = apiResp.Data.Name
 			}
@@ -218,17 +227,79 @@ func getBilibiliUserStatsFromAPI(userInfo *BilibiliUserInfo) error {
 				"followers", userInfo.FollowerCount,
 				"following", userInfo.FollowingCount)
 		} else {
-			slog.Warn("API returned error", "code", apiResp.Code)
+			slog.Warn("API returned error, will fallback to browser method", "code", apiResp.Code)
 		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
-		slog.Error("API request error", "url", r.Request.URL, "error", err)
+		slog.Warn("API request failed, will fallback to browser method", "url", r.Request.URL, "error", err)
 	})
 
-	// 构建API URL - 使用 Bilibili 的用户信息API
 	apiURL := fmt.Sprintf("https://api.bilibili.com/x/space/wbi/acc/info?mid=%s", userInfo.UserID)
-	return c.Visit(apiURL)
+	c.Visit(apiURL)
+
+	if apiSuccess {
+		return nil
+	}
+	return errors.New("API method failed")
+}
+
+// getBilibiliUserStatsWithBrowser 使用无头浏览器获取统计数据
+func getBilibiliUserStatsWithBrowser(userInfo *BilibiliUserInfo) error {
+	// 导入检查 - 如果 chromedp 不可用，返回错误
+	// 这里我们在运行时检查，而不是编译时
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Warn("Browser method not available (chromedp not installed)", "error", r)
+		}
+	}()
+
+	// 这里会在安装 chromedp 后启用
+	slog.Info("Attempting to get stats using headless browser", "uid", userInfo.UserID)
+
+	// TODO: 实际使用浏览器的代码在这里
+	/*
+	browser := lib_browser.NewHeadlessBrowser()
+	defer browser.Close()
+
+	stats, err := browser.ExtractBilibiliStats(userInfo.UserID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to extract stats with browser for uid %s", userInfo.UserID)
+	}
+
+	// 更新用户信息
+	if username := lib_browser.GetStringFromResult(stats, "username"); username != "" && userInfo.Username == "" {
+		userInfo.Username = username
+	}
+	if desc := lib_browser.GetStringFromResult(stats, "description"); desc != "" && userInfo.Description == "" {
+		userInfo.Description = desc
+	}
+	if face := lib_browser.GetStringFromResult(stats, "face"); face != "" && userInfo.AvatarURL == "" {
+		userInfo.AvatarURL = face
+	}
+
+	userInfo.FollowerCount = lib_browser.GetIntFromResult(stats, "follower")
+	userInfo.FollowingCount = lib_browser.GetIntFromResult(stats, "following")
+	userInfo.LikeCount = lib_browser.GetIntFromResult(stats, "like")
+	userInfo.PlayCount = lib_browser.GetIntFromResult(stats, "play")
+	if level := lib_browser.GetIntFromResult(stats, "level"); level > 0 && userInfo.Level == 0 {
+		userInfo.Level = int(level)
+	}
+	if vipType := lib_browser.GetIntFromResult(stats, "vipType"); vipType > 0 && userInfo.VipType == 0 {
+		userInfo.VipType = int(vipType)
+	}
+
+	slog.Info("Successfully got user stats with browser",
+		"uid", userInfo.UserID,
+		"name", userInfo.Username,
+		"followers", userInfo.FollowerCount,
+		"following", userInfo.FollowingCount,
+		"likes", userInfo.LikeCount,
+		"plays", userInfo.PlayCount)
+	*/
+
+	slog.Warn("Browser method is not enabled yet - please install chromedp dependency")
+	return errors.New("browser method not available")
 }
 
 // GetBilibiliUserVideos 获取用户最新的视频列表
