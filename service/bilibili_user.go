@@ -1,6 +1,7 @@
 package service
 
 import (
+	"azuserver/config"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -60,18 +61,53 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 		SpaceURL: fmt.Sprintf("https://space.bilibili.com/%s", uid),
 	}
 
+	// 从页面标题获取用户名 (作为备用方案)
+	c.OnHTML("title", func(e *colly.HTMLElement) {
+		title := e.Text
+		// 从标题提取用户名: "TimeTom790的个人空间-TimeTom790个人主页-哔哩哔哩视频"
+		if strings.Contains(title, "的个人空间") {
+			parts := strings.Split(title, "的个人空间")
+			if len(parts) > 0 && userInfo.Username == "" {
+				userInfo.Username = parts[0]
+			}
+		}
+	})
+
+	// 从描述获取额外信息
+	c.OnHTML("meta[name='description']", func(e *colly.HTMLElement) {
+		desc := e.Attr("content")
+		if desc != "" && userInfo.Description == "" {
+			// 提取描述中的主要内容
+			if strings.Contains(desc, "个人空间，提供") {
+				parts := strings.Split(desc, "个人空间，提供")
+				if len(parts) > 1 {
+					detail := parts[1]
+					if strings.Contains(detail, "内容，关注") {
+						contentParts := strings.Split(detail, "内容，关注")
+						if len(contentParts) > 0 {
+							userInfo.Description = strings.TrimSpace(contentParts[0])
+						}
+					}
+				}
+			}
+		}
+	})
+
 	// 获取用户基本信息
 	c.OnHTML("script", func(e *colly.HTMLElement) {
 		scriptContent := e.Text
 		
-		// 查找包含用户信息的JSON数据
-		if strings.Contains(scriptContent, "__INITIAL_STATE__") {
+		// 查找包含用户信息的JSON数据 - 支持新旧格式
+		if strings.Contains(scriptContent, "__INITIAL_STATE__") || strings.Contains(scriptContent, "_render_data_") {
 			// 提取用户名
 			if strings.Contains(scriptContent, "\"name\":") {
 				re := regexp.MustCompile(`"name":"([^"]+)"`)
-				matches := re.FindStringSubmatch(scriptContent)
-				if len(matches) > 1 {
-					userInfo.Username = matches[1]
+				matches := re.FindAllStringSubmatch(scriptContent, -1)
+				for _, match := range matches {
+					if len(match) > 1 && match[1] != "" && userInfo.Username == "" {
+						userInfo.Username = match[1]
+						break
+					}
 				}
 			}
 
@@ -112,6 +148,17 @@ func GetBilibiliUserInfo(uid string) (*BilibiliUserInfo, error) {
 				matches := re.FindStringSubmatch(scriptContent)
 				if len(matches) > 1 {
 					userInfo.Description = matches[1]
+				}
+			}
+			
+			// 尝试提取粉丝数等统计信息 (如果在脚本中可找到)
+			if strings.Contains(scriptContent, "\"follower\":") {
+				re := regexp.MustCompile(`"follower":(\d+)`)
+				matches := re.FindStringSubmatch(scriptContent)
+				if len(matches) > 1 {
+					if count, err := strconv.ParseInt(matches[1], 10, 64); err == nil {
+						userInfo.FollowerCount = count
+					}
 				}
 			}
 		}
@@ -542,14 +589,6 @@ func SendBilibiliUserInfo(uid string) error {
 	// 格式化消息
 	messages := FormatBilibiliUserMessage(userInfo, videos)
 
-	// 发送到Discord（这里需要配置Discord webhook）
-	// 注意：实际使用时需要确保config包中有相应的配置
-	// return SendMessageToDiscord(messages, config.GetDiscordChatWebhookUrl(), ServiceNameBilibiliUser)
-	
-	// 临时：打印到日志
-	for _, msg := range messages {
-		slog.Info("Bilibili User Info", "message", msg)
-	}
-
-	return nil
+	// 发送到Discord
+	return SendMessageToDiscord(messages, config.GetDiscordChatWebhookUrl(), ServiceNameBilibiliUser)
 }

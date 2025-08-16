@@ -20,6 +20,8 @@ const (
 type Config struct {
 	DiscordChatWebhookUrl string `yaml:"chat_webhook"`
 	DiscordSysWebhookUrl  string `yaml:"system_webhook"`
+	YouTubeDefaultUserID  string `yaml:"youtube_default_user_id"`
+	BilibiliDefaultUID    string `yaml:"bilibili_default_uid"`
 }
 
 var (
@@ -32,6 +34,14 @@ func GetDiscordChatWebhookUrl() string {
 
 func GetDiscordSysWebhookUrl() string {
 	return appConfig.DiscordSysWebhookUrl
+}
+
+func GetYouTubeDefaultUserID() string {
+	return appConfig.YouTubeDefaultUserID
+}
+
+func GetBilibiliDefaultUID() string {
+	return appConfig.BilibiliDefaultUID
 }
 
 func LoadConfig() error {
@@ -56,6 +66,8 @@ func LoadConfig() error {
 	// TODO: validate the args.
 	appConfig.DiscordChatWebhookUrl = os.Getenv("DISCORD_CHAT_WEBHOOK_URL")
 	appConfig.DiscordSysWebhookUrl = os.Getenv("DISCORD_SYS_WEBHOOK_URL")
+	appConfig.YouTubeDefaultUserID = os.Getenv("YOUTUBE_DEFAULT_USER_ID")
+	appConfig.BilibiliDefaultUID = os.Getenv("BILIBILI_DEFAULT_UID")
 	slog.Info("loading configurations from shell env")
 
 	return nil

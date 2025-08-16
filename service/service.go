@@ -1,6 +1,7 @@
 package service
 
 import (
+	"azuserver/config"
 	"fmt"
 	"log/slog"
 
@@ -43,10 +44,24 @@ func RunService(task *string) {
 		SendVocaloidRanking()
 
 	case AzutvTaskTypeYouTubeUser:
-		slog.Info("YouTube user service requires userID parameter. Use RunServiceWithParams instead.")
+		userID := config.GetYouTubeDefaultUserID()
+		if userID == "" {
+			slog.Error("YouTube default user ID not configured")
+			return
+		}
+		if err := SendYouTubeUserInfo(userID); err != nil {
+			slog.Error("Failed to send YouTube user info", "error", err)
+		}
 
 	case AzutvTaskTypeBilibiliUser:
-		slog.Info("Bilibili user service requires uid parameter. Use RunServiceWithParams instead.")
+		uid := config.GetBilibiliDefaultUID()
+		if uid == "" {
+			slog.Error("Bilibili default UID not configured")
+			return
+		}
+		if err := SendBilibiliUserInfo(uid); err != nil {
+			slog.Error("Failed to send Bilibili user info", "error", err)
+		}
 
 	default:
 		slog.Error(fmt.Sprintf("invalid task type %q", *task))

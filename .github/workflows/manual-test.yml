@@ -45,14 +45,15 @@ jobs:
           echo "Selected service: ${{ inputs.service }}"
           echo "User ID: ${{ inputs.user_id }}"
           
-          # Validate that user services have required user_id
+          # Note: User ID is now optional for user services due to default configuration
           if [[ "${{ inputs.service }}" == "youtube_user" || "${{ inputs.service }}" == "bilibili_user" ]]; then
             if [[ -z "${{ inputs.user_id }}" ]]; then
-              echo "❌ Error: User ID is required for ${{ inputs.service }} service"
-              echo "Examples:"
+              echo "ℹ️  No User ID provided. Using default configuration."
+              echo "Examples for custom User ID:"
               echo "  - YouTube: @MrBeast, UCX6OQ3DkcsbYNE6H8uQQuVA, or pewdiepie"
               echo "  - Bilibili: 1, 946974, or any numeric UID"
-              exit 1
+            else
+              echo "📋 Using provided User ID: ${{ inputs.user_id }}"
             fi
           fi
         
@@ -65,10 +66,10 @@ jobs:
           DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           
-      - name: Run YouTube User Service
-        if: ${{ inputs.service == 'youtube_user' }}
+      - name: Run YouTube User Service (with custom user ID)
+        if: ${{ inputs.service == 'youtube_user' && inputs.user_id != '' }}
         run: |
-          echo "🎬 Testing YouTube User Service..."
+          echo "🎬 Testing YouTube User Service with custom User ID..."
           echo "User ID: ${{ inputs.user_id }}"
           echo "Command: ./main -task=youtube_user -user-id='${{ inputs.user_id }}'"
           ./main -task=youtube_user -user-id="${{ inputs.user_id }}"
@@ -76,16 +77,38 @@ jobs:
           DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           
-      - name: Run Bilibili User Service  
-        if: ${{ inputs.service == 'bilibili_user' }}
+      - name: Run YouTube User Service (with default configuration)
+        if: ${{ inputs.service == 'youtube_user' && inputs.user_id == '' }}
         run: |
-          echo "📺 Testing Bilibili User Service..."
+          echo "🎬 Testing YouTube User Service with default configuration..."
+          echo "Command: ./main -task=youtube_user"
+          ./main -task=youtube_user
+        env:
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          YOUTUBE_DEFAULT_USER_ID: ${{ secrets.YOUTUBE_DEFAULT_USER_ID }}
+          
+      - name: Run Bilibili User Service (with custom UID)
+        if: ${{ inputs.service == 'bilibili_user' && inputs.user_id != '' }}
+        run: |
+          echo "📺 Testing Bilibili User Service with custom UID..."
           echo "UID: ${{ inputs.user_id }}"
           echo "Command: ./main -task=bilibili_user -uid='${{ inputs.user_id }}'"
           ./main -task=bilibili_user -uid="${{ inputs.user_id }}"
         env:
           DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
           DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          
+      - name: Run Bilibili User Service (with default configuration)
+        if: ${{ inputs.service == 'bilibili_user' && inputs.user_id == '' }}
+        run: |
+          echo "📺 Testing Bilibili User Service with default configuration..."
+          echo "Command: ./main -task=bilibili_user"
+          ./main -task=bilibili_user
+        env:
+          DISCORD_CHAT_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          DISCORD_SYS_WEBHOOK_URL: ${{ secrets.DISCORD_TEST_WEBHOOK_URL }}
+          BILIBILI_DEFAULT_UID: ${{ secrets.BILIBILI_DEFAULT_UID }}
           
       - name: Service Test Complete
         run: |

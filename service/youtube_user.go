@@ -1,6 +1,7 @@
 package service
 
 import (
+	"azuserver/config"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -384,14 +385,6 @@ func SendYouTubeUserInfo(userID string) error {
 	// 格式化消息
 	messages := FormatYouTubeUserMessage(userInfo, videos)
 
-	// 发送到Discord（这里需要配置Discord webhook）
-	// 注意：实际使用时需要确保config包中有相应的配置
-	// return SendMessageToDiscord(messages, config.GetDiscordChatWebhookUrl(), ServiceNameYouTubeUser)
-	
-	// 临时：打印到日志
-	for _, msg := range messages {
-		slog.Info("YouTube User Info", "message", msg)
-	}
-
-	return nil
+	// 发送到Discord
+	return SendMessageToDiscord(messages, config.GetDiscordChatWebhookUrl(), ServiceNameYouTubeUser)
 }
